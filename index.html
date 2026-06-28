@@ -231,7 +231,8 @@ function toast(msg) {
 
 // ── GUARDAR ──
 function guardar() {
-  DOC.set({ clientes: clientes, egresos: egresos })
+  // Con merge: true le indicamos a Firebase que sume los datos en vez de borrar todo
+  DOC.set({ clientes: clientes, egresos: egresos }, { merge: true })
     .catch(function(e){ console.error(e); toast('⚠️ Error al guardar'); });
 }
 
