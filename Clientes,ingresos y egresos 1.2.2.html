@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JFY Relax - Control Financiero</title>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <style>
+        body { background-color: #0a0a0a; color: #ffffff; font-family: 'Segoe UI', Arial, sans-serif; margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; }
+        .app-container { width: 100%; max-width: 480px; display: flex; flex-direction: column; }
+        .header { text-align: center; margin-bottom: 25px; margin-top: 10px; }
+        .header h1 { color: #cca43b; font-size: 28px; margin: 0; letter-spacing: 3px; font-weight: 700; }
+        .header p { color: #777777; font-size: 13px; margin: 5px 0 0 0; letter-spacing: 2px; text-transform: uppercase; }
+        .tabs-container { display: flex; background-color: #141414; padding: 6px; border-radius: 12px; border: 1px solid #222222; margin-bottom: 25px; }
+        .tab-button { flex: 1; padding: 12px; background: transparent; border: none; color: #aaaaaa; font-weight: 600; font-size: 14px; cursor: pointer; border-radius: 8px; transition: all 0.3s ease; display: flex; align-items: center; justify-content: center; gap: 8px; letter-spacing: 1px; }
+        .tab-button.active { background-color: #cca43b; color: #0a0a0a; }
+        .section-view { display: none; }
+        .section-view.active { display: block; }
+        .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .section-header h2 { color: #cca43b; margin: 0; font-size: 24px; font-weight: 600; }
+        .btn-action-small { background-color: #141414; color: #ffffff; border: 1px solid #333333; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; display: flex; align-items: center; gap: 6px; }
+        .btn-action-small:hover { border-color: #cca43b; color: #cca43b; }
+        .summary-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px; }
+        .summary-box { background-color: #141414; border: 1px solid #222222; border-radius: 12px; padding: 15px; }
+        .summary-box .title { color: #666666; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 5px; }
+        .summary-box .amount { font-size: 22px; font-weight: 700; }
+        .amount.income { color: #cca43b; }
+        .amount.expense { color: #e57373; }
+        .balance-card { background-color: #141414; border: 1px solid #241f15; border-radius: 14px; padding: 20px; margin-bottom: 25px; background: linear-gradient(135deg, #141414 0%, #1a160e 100%); }
+        .balance-row { display: flex; justify-content: space-between; margin-bottom: 12px; font-size: 14px; color: #aaaaaa; }
+        .balance-row.total { margin-top: 18px; padding-top: 15px; border-top: 1px solid #332712; font-size: 16px; font-weight: 700; color: #ffffff; }
+        .balance-row.total .amount { color: #cca43b; font-size: 18px; }
+        .form-card { background-color: #141414; border: 1px solid #222222; border-radius: 14px; padding: 20px; margin-bottom: 20px; }
+        .form-card h3 { margin-top: 0; margin-bottom: 15px; font-size: 12px; color: #888888; letter-spacing: 1.5px; text-transform: uppercase; }
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; font-size: 11px; color: #666666; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; font-weight: 600; }
+        .form-row { display: flex; gap: 15px; }
+        .form-group.half-width { flex: 1; }
+        .form-control { width: 100%; background-color: #1a1a1a; border: 1px solid #2d2d2d; border-radius: 8px; padding: 12px; color: #ffffff; font-size: 14px; box-sizing: border-box; }
+        .form-control:focus { outline: none; border-color: #cca43b; }
+        .form-control.gold-text { color: #cca43b; font-weight: 700; }
+        .btn-submit { width: 100%; background-color: #cca43b; color: #0a0a0a; border: none; padding: 14px; border-radius: 8px; font-weight: 700; font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; margin-top: 10px; }
+        .data-list { margin-top: 15px; }
+        .date-group { margin-bottom: 15px; }
+        .date-label { background-color: #332712; color: #cca43b; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; padding: 6px 12px; border-radius: 6px; display: inline-block; margin-bottom: 8px; }
+        .client-item { background-color: #141414; border: 1px solid #222222; padding: 12px 15px; border-radius: 8px; margin-bottom: 10px; display: flex; align-items: center; }
+        .client-avatar { width: 36px; height: 36px; border-radius: 50%; background-color: #332712; color: #cca43b; font-weight: 700; font-size: 14px; display: flex; align-items: center; justify-content: center; margin-right: 15px; }
+        .client-info { flex: 1; }
+        .client-name { font-weight: 600; font-size: 14px; }
+        .client-meta { font-size: 12px; color: #777777; margin-top: 2px; }
+        .badge { font-size: 10px; font-weight: 700; text-transform: uppercase; padding: 2px 6px; border-radius: 4px; margin-left: 5px; }
+        .badge-yape { background-color: #2a1f4a; color: #8c73e5; }
+        .badge-cash { background-color: #222222; color: #aaaaaa; }
+        .client-actions { text-align: right; display: flex; align-items: center; gap: 15px; }
+        .client-amount { color: #cca43b; font-weight: 700; font-size: 14px; }
+        .btn-delete { background: transparent; border: none; color: #e57373; cursor: pointer; font-size: 12px; }
+        .data-item { background-color: #141414; border: 1px solid #222222; padding: 12px 15px; border-radius: 8px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
+        .data-info .primary { font-weight: 600; font-size: 14px; }
+        .data-info .secondary { font-size: 12px; color: #777777; margin-top: 2px; }
+    </style>
+</head>
+<body>
+
+    <div class="app-container">
+        <div class="header">
+            <h1>JFY RELAX</h1>
+            <p>Gestión de Clientes</p>
+        </div>
+
+        <div class="tabs-container">
+            <button class="tab-button active" id="tab-clientes" onclick="switchTab('clientes')">👥 CLIENTES</button>
+            <button class="tab-button" id="tab-finanzas" onclick="switchTab('finanzas')">📊 FINANZAS</button>
+        </div>
+
+        <div id="view-clientes" class="section-view active">
+            <div class="section-header">
+                <h2>Mis Clientes</h2>
+                <div style="display:flex; gap:10px;">
+                    <button class="btn-action-small" onclick="exportarAExcel()">📥 Exportar</button>
+                    <button class="btn-action-small" style="color:#e57373; border-color:#532e2e;" onclick="confirmarReinicio()">🔄 Reiniciar</button>
+                </div>
+            </div>
+
+            <div class="form-card">
+                <h3>AGREGAR CLIENTE</h3>
+                <form id="form-cliente">
+                    <div class="form-group">
+                        <label>NOMBRE</label>
+                        <input type="text" id="cli-nombre" class="form-control" placeholder="Nombre del cliente" required>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group half-width">
+                            <label>TIEMPO</label>
+                            <select id="cli-tiempo" class="form-control" required>
+                                <option value="15">15 min</option>
+                                <option value="30">30 min</option>
+                                <option value="60">60 min</option>
+                            </select>
+                        </div>
+                        <div class="form-group half-width">
+                            <label>PAGO</label>
+                            <select id="cli-pago" class="form-control" required>
+                                <option value="Yape">Yape</option>
+                                <option value="Efectivo">Efectivo</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>MONTO (S/)</label>
+                        <input type="number" id="cli-monto-readonly" class="form-control gold-text" value="10" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label>CON CUÁNTO PAGA (S/)</label>
+                        <input type="number" id="cli-paga" class="form-control" placeholder="0.00" step="0.50">
+                    </div>
+                    <button type="submit" class="btn-submit">+ Agregar</button>
+                </form>
+            </div>
+            <div class="data-list" id="lista-clientes"></div>
+        </div>
+
+        <div id="view-finanzas" class="section-view">
+            <div class="section-header">
+                <h2>Finanzas</h2>
+                <button class="btn-action-small" onclick="exportarAExcel()">📥 Exportar</button>
+            </div>
+            <div class="summary-grid">
+                <div class="summary-box">
+                    <div class="title">Ingresos</div>
+                    <div class="amount income" id="card-ingresos">S/ 0.00</div>
+                </div>
+                <div class="summary-box">
+                    <div class="title">Egresos</div>
+                    <div class="amount expense" id="card-egresos">S/ 0.00</div>
+                </div>
+            </div>
+            <div class="balance-card">
+                <div class="balance-row">
+                    <span>Ingresos totales</span>
+                    <span id="bal-ingresos" style="color: #cca43b;">S/ 0.00</span>
+                </div>
+                <div class="balance-row">
+                    <span>Egresos totales</span>
+                    <span id="bal-egresos" style="color: #e57373;">- S/ 0.00</span>
+                </div>
+                <div class="balance-row total">
+                    <span>Ganancia neta</span>
+                    <span class="amount" id="bal-neto">S/ 0.00</span>
+                </div>
+            </div>
+            <div class="form-card">
+                <h3>REGISTRAR EGRESO</h3>
+                <form id="form-egreso">
+                    <div class="form-group">
+                        <label>DESCRIPCIÓN</label>
+                        <input type="text" id="fin-desc" class="form-control" placeholder="Ej: insumos, alquiler..." required>
+                    </div>
+                    <div class="form-group">
+                        <label>MONTO (S/)</label>
+                        <input type="number" id="fin-monto" class="form-control" placeholder="0.00" step="0.50" required>
+                    </div>
+                    <button type="submit" class="btn-submit">+ Agregar egreso</button>
+                </form>
+            </div>
+            <div class="data-list" id="lista-finanzas"></div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
+        import { getDatabase, ref, push, onValue, remove, set } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js';
+
+        // CONEXIÓN DIRECTA Y CORREGIDA AL PROYECTO DE TU DATABASE
+        const firebaseConfig = {
+            databaseURL: 'https://clientes-ingresos-y-egresos-default-rtdb.firebaseio.com'
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+
+        const clientesRef = ref(db, 'clientes');
+        const finanzasRef = ref(db, 'finanzas');
+
+        // Lógica del Formulario Dinámico
+        document.getElementById('cli-tiempo').addEventListener('change', (e) => {
+            const tiempo = e.target.value;
+            const montoEl = document.getElementById('cli-monto-readonly');
+            if (tiempo === '15') montoEl.value = '10';
+            else if (tiempo === '30') montoEl.value = '20';
+            else if (tiempo === '60') montoEl.value = '30';
+        });
+
+        // Guardar Clientes
+        document.getElementById('form-cliente').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const nombre = document.getElementById('cli-nombre').value;
+            const tiempo = document.getElementById('cli-tiempo').value + ' min';
+            const pago = document.getElementById('cli-pago').value;
+            const monto = parseFloat(document.getElementById('cli-monto-readonly').value);
+            const pagaCon = parseFloat(document.getElementById('cli-paga').value) || monto;
+
+            push(clientesRef, { nombre, tiempo, pago, monto, pagaCon, id: Date.now() })
+                .then(() => {
+                    document.getElementById('form-cliente').reset();
+                    document.getElementById('cli-monto-readonly').value = '10';
+                });
+        });
+
+        // Escuchar Clientes en Vivo
+        onValue(clientesRef, (snapshot) => {
+            const container = document.getElementById('lista-clientes');
+            container.innerHTML = '';
+            if (snapshot.exists()) {
+                const clientes = [];
+                snapshot.forEach(child => { clientes.push({ key: child.key, ...child.val() }); });
+                
+                const groups = {};
+                [...clientes].reverse().forEach(c => {
+                    const d = new Date(c.id);
+                    const key = d.toLocaleDateString('es-PE', { weekday:'long', day:'numeric', month:'short' });
+                    if (!groups[key]) groups[key] = [];
+                    groups[key].push(c);
+                });
+
+                Object.keys(groups).forEach(date => {
+                    const group = document.createElement('div');
+                    group.className = 'date-group';
+                    group.innerHTML = `<div class="date-label">${date.toUpperCase()}</div>`;
+                    
+                    groups[date].forEach(data => {
+                        const initials = data.nombre.split(' ').map(n=>n[0]).join('').substring(0,2).toUpperCase();
+                        group.innerHTML += `
+                            <div class="client-item">
+                                <div class="client-avatar">${initials}</div>
+                                <div class="client-info">
+                                    <div class="client-name">${data.nombre}</div>
+                                    <div class="client-meta">${data.tiempo} | <span class="badge ${data.pago === 'Yape' ? 'badge-yape' : 'badge-cash'}">${data.pago}</span></div>
+                                </div>
+                                <div class="client-actions">
+                                    <span class="client-amount">S/ ${data.monto.toFixed(2)}</span>
+                                    <button class="btn-delete" onclick="eliminarDato('clientes', '${data.key}')">🗑️</button>
+                                </div>
+                            </div>`;
+                    });
+                    container.appendChild(group);
+                });
+            } else {
+                container.innerHTML = '<p style="color:#666; text-align:center; font-size:13px;">No hay clientes registrados.</p>';
+            }
+        });
+
+        // Guardar Egresos
+        document.getElementById('form-egreso').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const desc = document.getElementById('fin-desc').value;
+            const monto = parseFloat(document.getElementById('fin-monto').value);
+            push(finanzasRef, { tipo: 'egreso', descripcion: desc, monto, fecha: new Date().toLocaleDateString('es-PE') })
+                .then(() => document.getElementById('form-egreso').reset());
+        });
+
+        // Escuchar Finanzas e Ingresos cruzados
+        onValue(finanzasRef, (snapshot) => {
+            const listaFinanzas = document.getElementById('lista-finanzas');
+            listaFinanzas.innerHTML = '';
+            let totalEgresos = 0;
+
+            if (snapshot.exists()) {
+                snapshot.forEach(child => {
+                    const data = child.val();
+                    if (data.tipo === 'egreso') {
+                        totalEgresos += data.monto;
+                        listaFinanzas.innerHTML += `
+                            <div class="data-item">
+                                <div class="data-info"><div class="primary">${data.descripcion}</div><div class="secondary">${data.fecha}</div></div>
+                                <div style="display:flex; align-items:center; gap:15px;">
+                                    <span style="font-weight:700; color: #e57373">- S/ ${data.monto.toFixed(2)}</span>
+                                    <button class="btn-delete" onclick="eliminarDato('finanzas', '${child.key}')">🗑️</button>
+                                </div>
+                            </div>`;
+                    }
+                });
+            } else {
+                listaFinanzas.innerHTML = '<p style="color:#666; text-align:center; font-size:13px;">No hay movimientos.</p>';
+            }
+
+            onValue(clientesRef, (clientSnapshot) => {
+                let totalIngresos = 0;
+                clientSnapshot.forEach(c => { totalIngresos += c.val().monto; });
+                const gananciaNeta = totalIngresos - totalEgresos;
+
+                document.getElementById('card-ingresos').innerText = `S/ ${totalIngresos.toFixed(2)}`;
+                document.getElementById('card-egresos').innerText = `S/ ${totalEgresos.toFixed(2)}`;
+                document.getElementById('bal-ingresos').innerText = `S/ ${totalIngresos.toFixed(2)}`;
+                document.getElementById('bal-egresos').innerText = `- S/ ${totalEgresos.toFixed(2)}`;
+                
+                const netoHTML = document.getElementById('bal-neto');
+                netoHTML.innerText = `S/ ${gananciaNeta.toFixed(2)}`;
+                netoHTML.style.color = gananciaNeta >= 0 ? '#cca43b' : '#e57373';
+            }, {onlyOnce: true});
+        });
+
+        // Funciones Globales de Limpieza y Control
+        window.eliminarDato = function(nodo, id) { if(confirm('¿Eliminar registro?')) remove(ref(db, `${nodo}/${id}`)); };
+        window.confirmarReinicio = function() { if(confirm('⚠ ¿Borrar TODO permanentemente?')) set(ref(db), { clientes: {}, finanzas: {} }); };
+        
+        window.exportarAExcel = function() {
+            onValue(ref(db, '/'), (snapshot) => {
+                if (!snapshot.exists()) return alert('Sin datos.');
+                const bd = snapshot.val();
+                const tCli = [], tEgr = [];
+                Object.keys(bd.clientes || {}).forEach(k => {
+                    const c = bd.clientes[k], d = new Date(c.id);
+                    tCli.push({ "Fecha": d.toLocaleDateString('es-PE'), "Nombre": c.nombre, "Tiempo": c.tiempo, "Pago": c.pago, "Monto": c.monto });
+                });
+                Object.keys(bd.finanzas || {}).forEach(k => { const f = bd.finanzas[k]; if(f.tipo==='egreso') tEgr.push({ "Fecha": f.fecha, "Descripción": f.descripcion, "Monto": f.monto }); });
+                
+                const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(tCli.length?tCli:[{Msg:"Vacio"}]), "Clientes");
+                XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(tEgr.length?tEgr:[{Msg:"Vacio"}]), "Egresos");
+                XLSX.writeFile(wb, "JFY_Relax_Control.xlsx");
+            }, { onlyOnce: true });
+        };
+    </script>
+    <script>
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.section-view').forEach(view => view.classList.remove('active'));
+            document.getElementById(`tab-${tabName}`).classList.add('active');
+            document.getElementById(`view-${tabName}`).classList.add('active');
+        }
+    </script>
+</body>
+</html>
