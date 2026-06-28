@@ -177,15 +177,18 @@ input:focus,select:focus{border-color:var(--blue)}
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 
 <script>
-// ── FIREBASE ──
+// ── FIREBASE CREDENCIALES NUEVAS ──
 firebase.initializeApp({
   apiKey:            "AIzaSyDjhH4fCBx9GER-FCBZ18tMQtzEeF8Qobo",
   authDomain:        "clientes-ingreosos-y-egresos.firebaseapp.com",
+  databaseURL:       "https://clientes-ingreosos-y-egresos-default-rtdb.firebaseio.com",
   projectId:         "clientes-ingreosos-y-egresos",
   storageBucket:     "clientes-ingreosos-y-egresos.firebasestorage.app",
   messagingSenderId: "486463620081",
-  appId:             "1:486463620081:web:dd571ec8291a51c9553a50"
+  appId:             "1:486463620081:web:cc2fc56f2e005daa553a50",
+  measurementId:     "G-JMP8ZGZKQY"
 });
+
 var db  = firebase.firestore();
 var DOC = db.collection("jfy_relax_app").doc("semana_actual");
 
@@ -229,9 +232,8 @@ function toast(msg) {
   toastTimer = setTimeout(function(){ el.classList.remove('show'); }, 2200);
 }
 
-// ── GUARDAR ──
+/// ── GUARDAR ──
 function guardar() {
-  // Con merge: true le indicamos a Firebase que sume los datos en vez de borrar todo
   DOC.set({ clientes: clientes, egresos: egresos }, { merge: true })
     .catch(function(e){ console.error(e); toast('⚠️ Error al guardar'); });
 }
