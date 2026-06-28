@@ -30,7 +30,7 @@ body{max-width:520px;margin:0 auto;padding-bottom:32px}
 .header h1{font-size:22px;font-weight:800;letter-spacing:-.5px;color:var(--text)}
 .hbtns{display:flex;gap:8px}
 .hbtn{background:var(--card);border:0.5px solid var(--border2);border-radius:var(--radius);padding:8px 12px;color:var(--text2);font-size:12px;cursor:pointer;display:flex;align-items:center;gap:6px;white-space:nowrap;transition:all 0.2s}
-.hbtn:pointer{background:var(--card2);color:var(--text)}
+.hbtn:active{background:var(--card2);color:var(--text)}
 
 .main-nav{margin:10px 16px;display:grid;grid-template-columns:1fr 1fr;gap:6px;background:var(--card);padding:4px;border-radius:var(--radius);border:0.5px solid var(--border)}
 .nav-btn{padding:10px;border:none;background:transparent;color:var(--text2);font-size:14px;font-weight:600;cursor:pointer;border-radius:8px;transition:all 0.2s}
@@ -104,12 +104,8 @@ body{max-width:520px;margin:0 auto;padding-bottom:32px}
 <div class="header">
   <h1>JFY RELAX</h1>
   <div class="hbtns">
-    <button class="hbtn" id="btn-export">
-      Exportar
-    </button>
-    <button class="hbtn" id="btn-reset">
-      Reiniciar
-    </button>
+    <button class="hbtn" id="btn-export">Exportar</button>
+    <button class="hbtn" id="btn-reset">Reiniciar</button>
   </div>
 </div>
 
@@ -133,7 +129,7 @@ body{max-width:520px;margin:0 auto;padding-bottom:32px}
       </div>
     </div>
     <div class="field"><label>Monto (S/)</label><input type="number" id="inp-monto" step="0.5"></div>
-    <button class="btn-add" id="btn-add-cliente">+ Agregar</button>
+    <button class="btn-add" id="btn-add-cliente">+ Agregar Cliente</button>
     <div class="err" id="err-cliente">Completa nombre y monto.</div>
   </div>
   <div class="list-wrap">
@@ -152,9 +148,9 @@ body{max-width:520px;margin:0 auto;padding-bottom:32px}
     </div>
     <div class="field"><label>Monto (S/)</label><input type="number" id="inp-egreso-monto" step="0.5"></div>
     <button class="btn-add green" id="btn-add-egreso">+ Registrar Egreso</button>
-    <div class="err" id="err-egreso">Completa datos.</div>
+    <div class="err" id="err-egreso">Completa todos los datos.</div>
   </div>
-  <div class="list-wrap"><div class="list-title">Egresos</div><div id="list-egresos"></div></div>
+  <div class="list-wrap"><div class="list-title">Egresos de la Semana</div><div id="list-egresos"></div></div>
 </div>
 
 <div class="overlay hidden" id="overlay">
@@ -170,46 +166,53 @@ body{max-width:520px;margin:0 auto;padding-bottom:32px}
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-  import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+  import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
+  // TUS LLAVES CORRECTAS
   const firebaseConfig = {
-      apiKey: "AIzaSyDLESOjwo29-5eeLf5VAFPQNgKNTqtax9M",
-      authDomain: "mis-clientes-58623.firebaseapp.com",
-      projectId: "mis-clientes-58623",
-      storageBucket: "mis-clientes-58623.firebasestorage.app",
-      messagingSenderId: "596399357815",
-      appId: "1:596399357815:web:b7438350ca7ebaffb1eb72",
-      databaseURL: "https://clientes-ingresos-y-egresos-default-rtdb.firebaseio.com"
+    apiKey: "AIzaSyDjhH4fCBx9GER-FCBZ18tMQtzEeF8Qobo",
+    authDomain: "clientes-ingreosos-y-egresos.firebaseapp.com",
+    databaseURL: "https://clientes-ingreosos-y-egresos-default-rtdb.firebaseio.com",
+    projectId: "clientes-ingreosos-y-egresos",
+    storageBucket: "clientes-ingreosos-y-egresos.firebasestorage.app",
+    messagingSenderId: "486463620081",
+    appId: "1:486463620081:web:dd571ec8291a51c9553a50",
+    measurementId: "G-XRJ1VTF0S6"
   };
 
   const app = initializeApp(firebaseConfig);
-  const db = getDatabase(app);
-  const clientesRef = ref(db, 'semana_clientes');
-  const egresosRef = ref(db, 'egresos');
+  const db = getFirestore(app);
+  
+  // Enlazamos un documento global en Firestore
+  const docRef = doc(db, "jfy_relax_app", "semana_actual");
 
   const DAYS = ['Lunes','Martes','Miércoles','Jueves','Viernes','Sábado','Domingo'];
   let dataClientes = {}; DAYS.forEach(d => { dataClientes[d] = []; });
   let dataEgresos = [];
   let currentDay = DAYS[0]; let currentView = 'clientes';
 
-  onValue(clientesRef, (snapshot) => {
-    const fbData = snapshot.val();
-    if (fbData) DAYS.forEach(d => { dataClientes[d] = Array.isArray(fbData[d]) ? fbData[d] : []; });
-    else DAYS.forEach(d => { dataClientes[d] = []; });
+  // Escuchar a Firestore en tiempo real
+  onSnapshot(docRef, (docSnap) => {
+    if (docSnap.exists()) {
+      const fbData = docSnap.data();
+      dataClientes = fbData.clientes || {};
+      DAYS.forEach(d => { if(!dataClientes[d]) dataClientes[d] = []; });
+      dataEgresos = fbData.egresos || [];
+    } else {
+      DAYS.forEach(d => { dataClientes[d] = []; });
+      dataEgresos = [];
+    }
     render();
+  }, (error) => {
+    console.error("Error conectando con Firestore:", error);
   });
 
-  onValue(egresosRef, (snapshot) => {
-    const fbData = snapshot.val();
-    dataEgresos = fbData ? (Array.isArray(fbData) ? fbData : []) : [];
-    render();
-  });
-
+  // Guardar datos en Firestore
   function saveAll() {
-    set(clientesRef, dataClientes);
-    set(egresosRef, dataEgresos);
+    setDoc(docRef, { clientes: dataClientes, egresos: dataEgresos });
   }
 
+  // --- LÓGICA VISUAL ---
   function render() {
     if (currentView === 'clientes') {
       document.getElementById('view-clientes').style.display = 'block';
@@ -262,9 +265,9 @@ body{max-width:520px;margin:0 auto;padding-bottom:32px}
     const totalGastos = dataEgresos.reduce((a,c) => a + Number(c.monto), 0);
     const balanceNeto = totalIngresos - totalGastos;
     el.innerHTML = 
-      `<div class="stat wide"><div class="slabel">Balance Neto Real</div><div class="sval ${balanceNeto>=0?'neto-positivo':'neto-negativo'}">S/ ${balanceNeto.toFixed(2)}</div></div>
-       <div class="stat"><div class="slabel">Ingresos</div><div class="sval" style="color:var(--blue)">S/ ${totalIngresos.toFixed(2)}</div></div>
-       <div class="stat"><div class="slabel">Gastos</div><div class="sval" style="color:var(--red)">S/ ${totalGastos.toFixed(2)}</div></div>`;
+      `<div class="stat wide"><div class="slabel">Balance Neto</div><div class="sval ${balanceNeto>=0?'neto-positivo':'neto-negativo'}">S/ ${balanceNeto.toFixed(2)}</div></div>
+       <div class="stat"><div class="slabel">Ingresos Totales</div><div class="sval" style="color:var(--blue)">S/ ${totalIngresos.toFixed(2)}</div></div>
+       <div class="stat"><div class="slabel">Gastos Totales</div><div class="sval" style="color:var(--red)">S/ ${totalGastos.toFixed(2)}</div></div>`;
   }
 
   function renderListEgresos() {
@@ -279,6 +282,7 @@ body{max-width:520px;margin:0 auto;padding-bottom:32px}
       : `<div class="empty">No has registrado egresos</div>`;
   }
 
+  // --- INTERACCIONES ---
   document.getElementById('nav-clientes').addEventListener('click', () => { currentView = 'clientes'; document.getElementById('nav-clientes').classList.add('active'); document.getElementById('nav-finanzas').classList.remove('active'); render(); });
   document.getElementById('nav-finanzas').addEventListener('click', () => { currentView = 'finanzas'; document.getElementById('nav-finanzas').classList.add('active'); document.getElementById('nav-clientes').classList.remove('active'); render(); });
   document.getElementById('tabs').addEventListener('click', e => { const btn = e.target.closest('[data-day]'); if(btn){ currentDay = btn.dataset.day; render(); } });
@@ -287,26 +291,32 @@ body{max-width:520px;margin:0 auto;padding-bottom:32px}
     const nombre = document.getElementById('inp-nombre').value.trim(); const monto = parseFloat(document.getElementById('inp-monto').value);
     if(!nombre || isNaN(monto)){ document.getElementById('err-cliente').style.display='block'; return; }
     document.getElementById('err-cliente').style.display='none';
+    
     dataClientes[currentDay].push({ nombre, tiempo: document.getElementById('inp-tiempo').value, pago: document.getElementById('inp-pago').value, monto });
-    saveAll(); document.getElementById('inp-nombre').value=''; document.getElementById('inp-monto').value='';
+    saveAll(); 
+    document.getElementById('inp-nombre').value=''; document.getElementById('inp-monto').value='';
   });
 
   document.getElementById('btn-add-egreso').addEventListener('click', () => {
     const desc = document.getElementById('inp-egreso-desc').value.trim(); const monto = parseFloat(document.getElementById('inp-egreso-monto').value);
     if(!desc || isNaN(monto)){ document.getElementById('err-egreso').style.display='block'; return; }
     document.getElementById('err-egreso').style.display='none';
+    
     dataEgresos.push({ desc, cat: document.getElementById('inp-egreso-cat').value, monto });
-    saveAll(); document.getElementById('inp-egreso-desc').value = ''; document.getElementById('inp-egreso-monto').value = '';
+    saveAll(); 
+    document.getElementById('inp-egreso-desc').value = ''; document.getElementById('inp-egreso-monto').value = '';
   });
 
   document.getElementById('list-clientes').addEventListener('click', e => { const btn = e.target.closest('[data-del-cliente]'); if(btn){ dataClientes[currentDay].splice(Number(btn.dataset.delCliente), 1); saveAll(); } });
   document.getElementById('list-egresos').addEventListener('click', e => { const btn = e.target.closest('[data-del-egreso]'); if(btn){ dataEgresos.splice(Number(btn.dataset.delEgreso), 1); saveAll(); } });
 
+  // Modales
   document.getElementById('btn-reset').addEventListener('click', () => { document.getElementById('mbtn-day').textContent = `Borrar Clientes de ${currentDay}`; document.getElementById('overlay').classList.remove('hidden'); });
   document.getElementById('mbtn-cancel').addEventListener('click', () => { document.getElementById('overlay').classList.add('hidden'); });
   document.getElementById('mbtn-day').addEventListener('click', () => { dataClientes[currentDay] = []; saveAll(); document.getElementById('overlay').classList.add('hidden'); });
   document.getElementById('mbtn-week').addEventListener('click', () => { DAYS.forEach(d => { dataClientes[d] = []; }); dataEgresos = []; saveAll(); document.getElementById('overlay').classList.add('hidden'); });
 
+  // Exportar Excel Completo
   document.getElementById('btn-export').addEventListener('click', () => {
     let content = "--- CLIENTES ---\nDia,Nombre,Monto\n";
     DAYS.forEach(d => dataClientes[d].forEach(c => { content += `"${d}","${c.nombre}","${c.monto}"\n`; }));
